@@ -1,17 +1,159 @@
-# Automation Test Platform
+<h1 align="center">Automation Test Platform</h1>
 
-A local web UI to run end-to-end test suites, watch live progress, and browse a
-history of past runs. It is **framework-agnostic**: Playwright, Cypress and
-Selenium suites all run through the same dashboard, with the same live per-test
-progress and the same history. It never modifies the suites themselves.
+<p align="center">
+  <b>One dashboard for every end-to-end test suite.</b><br>
+  Run Playwright, Cypress and Selenium suites against any site you register,
+  watch every test live, keep the full history, and test a WordPress pull
+  request in one step. It runs on your own machine and never modifies the
+  suites.
+</p>
 
-| Framework | Language | Specs | Runner |
-| --- | --- | --- | --- |
-| Playwright | TypeScript | `*.spec.ts` | `playwright test` |
-| Cypress | TypeScript | `*.cy.ts` | `cypress run` |
-| Selenium | Java | `*Test.java` | JUnit 5 via Maven Surefire |
+<p align="center">
+  <a href="https://thebarbellengineer.com/projects/automation-test-platform/">Project page</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#install-it-with-an-agent">Install with an agent</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="LICENSE">MIT license</a>
+</p>
 
-See [PLAN.md](./PLAN.md) for the full design and roadmap.
+<p align="center">
+  <img src="https://thebarbellengineer.com/assets/img/dashboard-1600.webp" alt="The dashboard's live view: one card per suite and site, with progress and failures" width="720">
+</p>
+
+## Why
+
+I write end-to-end suites for a living, and every framework brings its own
+runner, its own reports and no shared history. Pointing a suite at a
+different site meant editing its config, and testing a pull request meant
+building it and installing it by hand first. This is the one dashboard I
+wanted: any suite, against any site, with the same live view and history
+whatever framework it uses.
+
+## What it does
+
+### Run anything against anywhere
+
+- **Suites × sites.** A suite says how to run, a site says where. Every suite
+  gets the site's URL and admin credentials as environment variables, so any
+  suite can target any registered site from a dropdown.
+- **Three frameworks, one view.** Playwright (TypeScript), Cypress
+  (TypeScript) and Selenium (Java, JUnit 5 via Maven) suites all run through
+  the same dashboard.
+- **Pick what to run.** A whole suite, a folder, single specs, or a keyword
+  filter where the framework supports one.
+- **In parallel.** The same suite against two sites, or two frameworks
+  against one site, run at once. One run per suite and site at a time.
+
+### Watch it live
+
+- **A card per target** with a progress bar, pass, fail and skip counts, the
+  test running now, and failures as they happen. It survives a page reload.
+- **Cancel** stops the whole process tree, for one target or the whole run.
+- **Check sites** before a run, so a site that isn't up fails fast.
+
+### Keep the history
+
+- **Every run is kept**, filterable by site and framework, with per-target
+  results, failures and links to each Playwright report or artifact.
+- **A combined report** for any run: totals, a per-site breakdown and the
+  failures, on one printable page you can save as PDF.
+- **Calendar and schedules.** Runs by day, and cron schedules that fire while
+  the dashboard runs.
+
+### Test a pull request
+
+- **PR Builder.** Paste a GitHub PR link for a WordPress plugin or theme. It
+  builds that PR, installs it on a [Local](https://localwp.com/) site and lets
+  you run any suite against it.
+
+### Safe to leave running
+
+- **Everything is behind a login**, with admin, tester and viewer roles and
+  per-person permission overrides.
+- **Site passwords are encrypted at rest** (AES-256-GCM) and only ever reach
+  a test through its environment.
+- **Localhost only by default.** See [Hosting it](#hosting-it) before
+  exposing it.
+
+## Requirements
+
+| What | Needed for | Install |
+|---|---|---|
+| **Node.js 18** or newer | The dashboard | `winget install OpenJS.NodeJS.LTS`, or [nodejs.org](https://nodejs.org/) |
+| **Git** | Getting the code | `winget install Git.Git` |
+| Your suites' own dependencies | Playwright and Cypress suites need their `node_modules` installed | `npm install` in each suite |
+| **JDK and Maven** | Selenium suites only. They don't have to be on `PATH`; the usual install locations are searched. | `winget install EclipseAdoptium.Temurin.21.JDK`, then Maven from [maven.apache.org](https://maven.apache.org/) |
+| **GitHub CLI**, logged in, and **Local** | PR Builder only | `winget install GitHub.cli`, then `gh auth login` |
+
+The sites you test must be running before you start a run.
+
+## Install
+
+```bash
+git clone https://github.com/MolnarMario/test-dashboard
+cd test-dashboard
+npm install
+cp sites.config.example.json sites.config.json   # then point it at your suites
+npm start                                         # → http://localhost:4400
+```
+
+The first start creates an `admin` account and prints its password **once**
+in the boot banner:
+
+```
+username: admin
+password: LdNAjum5DbiFokNftkpi     ← yours will differ
+```
+
+Copy it before the terminal scrolls. It is not stored anywhere in readable
+form, and the account can do nothing but change it until it has. On boot the
+dashboard also prints one line per configured suite saying whether it can
+run, and why not if it can't.
+
+## Install it with an agent
+
+Paste this into Claude Code, Codex or any agent that can run a shell:
+
+````text
+Install the Automation Test Platform (https://github.com/MolnarMario/test-dashboard) on this machine.
+
+1. Check that Node.js 18 or newer is installed (`node --version`). If not, install the LTS.
+2. Ask me which folder it should live in, then `git clone https://github.com/MolnarMario/test-dashboard`
+   there and run `npm install` in the clone.
+3. Ask me where my test suites are and which framework each uses (Playwright, Cypress or Selenium).
+   Copy `sites.config.example.json` to `sites.config.json` and add one entry per suite under
+   "suites", with `dir` relative to the dashboard folder. Do not add sites to this file.
+4. For each Playwright or Cypress suite, check that its `node_modules` exists; if not, ask before
+   running `npm install` in it. For Selenium suites, check `java -version` and `mvn -version`.
+5. Do not edit any file inside my test suites.
+6. Tell me to run `npm start` in the clone, copy the admin password from the boot banner,
+   open http://localhost:4400, sign in, change the password, and add my sites in the Sites tab.
+````
+
+## First ten minutes
+
+1. **Sign in** as `admin` with the printed password and choose your own.
+2. **Add a site** in the **Sites** tab: a name, its URL and its admin
+   credentials.
+3. **Run something.** In **Run**, tick a suite or a few specs, pick the site
+   from the dropdown on the suite's row and click **Run selected**.
+4. **Watch it** on the **Live** tab, then open the finished run in
+   **History** for the failures and the report.
+5. **Schedule it** from **Schedules** if it should run every night.
+
+To make a suite site-agnostic, read the base URL and credentials from the
+environment instead of hard-coding them. See [Configuration](#configuration).
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| A suite is listed as not runnable | Read its line in the boot banner. Usually a missing `node_modules` in the suite, or no JDK/Maven for Selenium. Set `DASHBOARD_JAVA_HOME` / `DASHBOARD_MAVEN_HOME` if they're somewhere unusual. |
+| Every test fails at once | The site isn't running. Use **Check sites** before the run. |
+| A keyword filter is ignored for Cypress | Cypress has no command-line title filter. Select specs instead. |
+| Selenium progress arrives in jumps | Surefire reports once per test class; the card shows which class is running in between. |
+| Lost the first admin password | Stop the dashboard, delete `data/users.json` and start it again. Sites, history and schedules survive. |
+| PR Builder fails to install | Check `gh auth status` and that the target site is already running in Local. |
 
 ## The model: suites × sites
 
@@ -26,60 +168,7 @@ dropdown on its row in the Run tab. One run per (suite, site) pair at a time is
 enforced; the same suite against two different sites, or two frameworks against
 the same site, run happily in parallel.
 
-## Quick start
-
-```bash
-npm install        # installs express (only dependency)
-npm start          # → http://localhost:4400
-```
-
-Then open **http://localhost:4400** and sign in. On boot it prints one line per
-configured suite saying whether it is runnable, and why not if it isn't.
-
-The first time it starts with no users, it creates an `admin` account with a
-randomly generated password and prints it in the boot banner **once**:
-
-```
-username: admin
-password: LdNAjum5DbiFokNftkpi     ← yours will differ
-```
-
-Copy it before the terminal scrolls — it is not stored anywhere in readable
-form, and the account can do nothing but change it until it has. See
-[First sign-in](#first-sign-in) if you lose it.
-
-The dashboard listens on `127.0.0.1` only. See [Hosting it](#hosting-it) before
-putting it anywhere else.
-
-Prerequisites:
-
-- The sites you want to test **must be running** before you start a run.
-- Node suites (Playwright, Cypress) need their own `node_modules` installed.
-- Selenium suites need a JDK and Maven. Neither has to be on `PATH` — the
-  dashboard looks in the usual install locations, and `DASHBOARD_JAVA_HOME` /
-  `DASHBOARD_MAVEN_HOME` override the search.
-
-## How it works
-
-- **Run tab** — the tree is grouped by suite, each labelled with its framework
-  and language. Pick a whole suite, a folder, or individual specs; choose which
-  registered site to run it against from the dropdown on the suite's row; hit
-  **Run selected**. Each selected (suite, site) pair becomes one OS process.
-- **Live tab** — a card per target with a progress bar, pass/fail/skip counts,
-  the currently-running test, and failures as they happen. Survives page
-  reloads (SSE reconnects). Cancel stops the process tree, per target or for
-  the whole run.
-- **History tab** — every run is recorded under `data/runs/<id>/`, filterable by
-  site and by framework. Click a run for per-target results, failures, and a
-  link to that target's Playwright report or artifacts.
-- **Calendar / Schedules** — runs by day, and cron schedules that fire while the
-  dashboard is running. A schedule picks (suite, site) pairs just like the Run
-  tab does.
-- **PR Builder tab** — paste a GitHub PR number or link for a configured
-  plugin/theme project; it builds that PR and installs it onto the project's
-  Local site, then lets you run any configured suite against it (see below).
-
-### What each framework can and can't do
+## What each framework can and can't do
 
 The adapters normalise as much as is honest, and the UI says so where they
 differ:
@@ -390,7 +479,8 @@ Drop a module in `server/frameworks/` implementing `detect`, `checkTooling`,
 documents the interface. Nothing outside `server/frameworks/` knows or cares
 which framework a suite uses.
 
-## Roadmap
+The design and roadmap are in [PLAN.md](PLAN.md).
 
-Phases 2–5 (richer history, calendar view, scheduling) are described in
-[PLAN.md](./PLAN.md). This is Phase 1: runner + live progress + history.
+## License
+
+[MIT](LICENSE). Built by Mario Molnar.
